@@ -1,4 +1,6 @@
 <template>
+  <div class="flex flex-col">
+  <!-- Device image + rings section (keeps original aspect ratio) -->
   <div class="aspect-[800/1100]">
     <div
       class="relative size-full bg-contain bg-top bg-no-repeat"
@@ -104,6 +106,16 @@
       </Transition>
     </div>
   </div>
+  <!-- Offline network connect panel — visible only when no device is connected -->
+  <Transition name="fade">
+    <div
+      v-if="!deviceStore.connected"
+      class="overflow-y-auto border-t border-zinc-800 bg-zinc-900/70"
+    >
+      <NetConnectPanel />
+    </div>
+  </Transition>
+  </div>
 </template>
 <script setup>
 import RenderNanoOne from '@renderer/assets/images/renderNanoOneTransparent.png'
@@ -115,6 +127,7 @@ import ScrambleText from '@renderer/components/common/ScrambleText.vue'
 import { computed, ref } from 'vue'
 import DeviceLEDRing from '@renderer/components/device/DeviceLEDRing.vue'
 import DeviceKeys from '@renderer/components/device/DeviceKeys.vue'
+import NetConnectPanel from '@renderer/components/device/NetConnectPanel.vue'
 import { storeToRefs } from 'pinia'
 import Color from 'color'
 

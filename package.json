@@ -33,6 +33,7 @@
     "@types/color": "^3.0.6",
     "@vueuse/core": "^10.9.0",
     "ajv": "^8.12.0",
+    "bonjour-service": "^1.4.2",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.0",
     "color": "^4.2.3",

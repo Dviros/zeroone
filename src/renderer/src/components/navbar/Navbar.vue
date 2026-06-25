@@ -55,6 +55,30 @@
               >Next Device
               <MenubarShortcut v-if="showShortcuts">⌘N</MenubarShortcut>
             </MenubarItem>
+
+            <!-- Discovered network devices (shown when offline) -->
+            <template v-if="!deviceStore.connected && deviceStore.discoveredNetDevices.length > 0">
+              <MenubarSeparator />
+              <MenubarLabel class="px-2 py-1 text-xs text-zinc-500">Network Devices</MenubarLabel>
+              <MenubarItem
+                v-for="dev in deviceStore.discoveredNetDevices"
+                :key="dev.deviceId"
+                class="flex justify-between gap-4"
+                @click="connectNetDiscovered(dev)"
+              >
+                <span>{{ dev.name }}</span>
+                <span class="font-mono text-zinc-500">{{ dev.ip }}</span>
+              </MenubarItem>
+            </template>
+
+            <!-- Manual connect over network (always shown when offline) -->
+            <template v-if="!deviceStore.connected">
+              <MenubarSeparator />
+              <MenubarItem @click="showNetConnect = true">
+                Connect over network…
+              </MenubarItem>
+            </template>
+
             <MenubarSeparator />
             <MenubarItem class="flex justify-between" @click="deviceStore.cycleOrientation">
               <p>Orientation:&nbsp;</p>
@@ -198,6 +222,7 @@ import {
   Menubar,
   MenubarContent,
   MenubarItem,
+  MenubarLabel,
   MenubarMenu,
   MenubarSeparator,
   MenubarShortcut,
@@ -218,6 +243,7 @@ const minimizable = ref(true)
 const maximizable = ref(true)
 const showDisconnectButton = ref(false)
 const showShortcuts = ref(false)
+const showNetConnect = ref(false)
 
 const isMaximized = ref(false)
 
@@ -237,6 +263,22 @@ const zerooneSubtitle = ref(null)
 const scrambleTitle = () => {
   zerooneTitle.value.scramble(1, 100, 0)
   zerooneSubtitle.value.scramble(1, 75, 30)
+}
+
+/** One-click connect for a discovered device — uses cached PSK if available. */
+async function connectNetDiscovered(dev) {
+  const cachedPsk = deviceStore.getPersistedPsk(dev.ip)
+  if (cachedPsk) {
+    try {
+      await deviceStore.connectNetDevice(dev.ip, cachedPsk)
+    } catch {
+      // Cached PSK failed — open the manual dialog
+      showNetConnect.value = true
+    }
+  } else {
+    // No PSK yet — open the panel so the user can enter one
+    showNetConnect.value = true
+  }
 }
 
 window.addEventListener('resize', () => {

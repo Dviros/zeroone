@@ -1,3 +1,9 @@
+export interface NetDiscoveredDevice {
+  deviceId: string
+  ip: string
+  name: string
+}
+
 export interface INanoSerialApi {
   listAttachedDevices(): Promise<string[]>
   connect(deviceid: string): Promise<string>
@@ -9,6 +15,12 @@ export interface INanoSerialApi {
   connectNet(ip: string, psk: string): Promise<string>
   /** Gracefully close a net connection. */
   disconnectNet(deviceid: string): Promise<void>
+  /** Subscribe to mDNS-discovered network devices. */
+  onNetDeviceDiscovered(callback: (device: NetDiscoveredDevice) => void): void
+  /** Subscribe to mDNS-lost network devices. */
+  onNetDeviceLost(callback: (device: { deviceId: string }) => void): void
+  /** Trigger a new mDNS browse cycle. */
+  mdnsRescan(): Promise<boolean>
 }
 
 export interface IElectronApi {

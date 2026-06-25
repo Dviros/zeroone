@@ -31,6 +31,20 @@ contextBridge.exposeInMainWorld('nanoIpc', {
   },
   disconnectNet(deviceid: string) {
     return ipcRenderer.invoke('nanoNet:disconnect', deviceid)
+  },
+  /** Subscribe to mDNS net-device-discovered events. */
+  onNetDeviceDiscovered(
+    callback: (device: { deviceId: string; ip: string; name: string }) => void
+  ) {
+    ipcRenderer.on('net-device-discovered', (_event, device) => callback(device))
+  },
+  /** Subscribe to mDNS net-device-lost events. */
+  onNetDeviceLost(callback: (device: { deviceId: string }) => void) {
+    ipcRenderer.on('net-device-lost', (_event, device) => callback(device))
+  },
+  /** Ask the main process to re-run the mDNS browse cycle. */
+  mdnsRescan() {
+    return ipcRenderer.invoke('nanoNet:mdns-rescan')
   }
 })
 

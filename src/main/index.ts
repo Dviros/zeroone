@@ -5,6 +5,7 @@ import icon from '../../resources/icon.png?asset'
 import nanoSerialApi from './nanoSerialApi'
 import nanoNetApi from './nanoNetApi'
 import installExtension from 'electron-devtools-installer'
+import { Bonjour, Service } from 'bonjour-service'
 
 const zoomFactor = 1
 const windowWidth = 1111
@@ -215,6 +216,49 @@ app.whenReady().then(() => {
       console.log('[net] Update event', deviceid, data)
     mainWindow.webContents.send('nanoSerialApi:event', 'update', deviceid, data)
   })
+  // ── mDNS auto-discovery ──────────────────────────────────────────────────────
+  // The Nano_D++ device advertises itself as _arduino._tcp (ArduinoOTA).
+  // hostname format: Nano_<MAC>.local — e.g. Nano_AABBCCDD1122.local
+  const bonjour = new Bonjour()
+  const browser = bonjour.find({ type: 'arduino', protocol: 'tcp' })
+
+  const resolveServiceIp = (svc: Service): string | null => {
+    // Prefer explicit IPv4 address list; fall back to refaddr
+    if (svc.addresses && svc.addresses.length > 0) {
+      const ipv4 = svc.addresses.find((a) => /^\d+\.\d+\.\d+\.\d+$/.test(a))
+      if (ipv4) return ipv4
+    }
+    if (svc.referer && typeof svc.referer === 'object' && 'address' in svc.referer) {
+      const addr = (svc.referer as { address: string }).address
+      if (/^\d+\.\d+\.\d+\.\d+$/.test(addr)) return addr
+    }
+    return null
+  }
+
+  browser.on('up', (svc: Service) => {
+    const ip = resolveServiceIp(svc)
+    if (!ip) return
+    const deviceId = 'net:' + ip
+    const name = svc.name || svc.host || deviceId
+    console.log('[mDNS] Discovered:', name, ip)
+    mainWindow.webContents.send('net-device-discovered', { deviceId, ip, name })
+  })
+
+  browser.on('down', (svc: Service) => {
+    const ip = resolveServiceIp(svc)
+    if (!ip) return
+    const deviceId = 'net:' + ip
+    console.log('[mDNS] Lost:', deviceId)
+    mainWindow.webContents.send('net-device-lost', { deviceId })
+  })
+
+  // ── mDNS IPC: renderer can request a rescan ──────────────────────────────────
+  ipcMain.handle('nanoNet:mdns-rescan', () => {
+    browser.stop()
+    browser.start()
+    return true
+  })
+
   const menu = new Menu()
   for (const menuItem of Object.values(appMenu)) {
     menu.append(

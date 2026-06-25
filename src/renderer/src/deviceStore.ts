@@ -154,6 +154,8 @@ export const useDeviceStore = defineStore('device', {
   state: () => ({
     attachedDeviceIds: [] as string[], // list of attached device ids
     currentDeviceId: null as string | null, // id of the current device
+    // mDNS-discovered network devices (populated before any connection)
+    discoveredNetDevices: [] as NetDiscoveredDevice[],
     profileNames: [] as string[], // list of profile names
     profiles: [] as Profile[], // list of profiles
     currentProfileName: null as string | null, // name of the current profile
@@ -241,6 +243,47 @@ export const useDeviceStore = defineStore('device', {
   actions: {
     setAttachedDeviceIds(deviceIds: string[]) {
       this.attachedDeviceIds = deviceIds
+    },
+    // ── mDNS net device discovery ─────────────────────────────────────────────
+    addDiscoveredNetDevice(device: NetDiscoveredDevice) {
+      if (!this.discoveredNetDevices.find((d) => d.deviceId === device.deviceId)) {
+        this.discoveredNetDevices.push(device)
+      }
+    },
+    removeDiscoveredNetDevice(deviceId: string) {
+      this.discoveredNetDevices = this.discoveredNetDevices.filter((d) => d.deviceId !== deviceId)
+    },
+    /**
+     * Connect to a network device by IP + PSK.
+     * Persists the credentials in localStorage keyed by IP so reconnect is one click.
+     * Returns the resolved deviceId string on success.
+     */
+    async connectNetDevice(ip: string, psk: string): Promise<string> {
+      const deviceId = await nanoIpc.connectNet(ip, psk)
+      // Persist last-used IP+PSK so reconnect is automatic next time
+      try {
+        const saved: Record<string, string> = JSON.parse(
+          localStorage.getItem('net-psk-map') || '{}'
+        )
+        saved[ip] = psk
+        localStorage.setItem('net-psk-map', JSON.stringify(saved))
+        // Also store the most-recently-used pair for one-click reconnect
+        localStorage.setItem('net-last-ip', ip)
+      } catch {
+        // localStorage errors are non-fatal
+      }
+      return deviceId
+    },
+    /** Return the persisted PSK for a given IP, or '' if not found. */
+    getPersistedPsk(ip: string): string {
+      try {
+        const saved: Record<string, string> = JSON.parse(
+          localStorage.getItem('net-psk-map') || '{}'
+        )
+        return saved[ip] || ''
+      } catch {
+        return ''
+      }
     },
     attachDevice(deviceId: string) {
       if (!this.attachedDeviceIds.includes(deviceId)) {
@@ -953,6 +996,14 @@ export const initializeDevices = () => {
           update.ok ? undefined : (update as unknown as { error?: string }).error)
       }
     }
+  })
+
+  // Register mDNS discovery handlers so network devices appear before connecting
+  nanoIpc.onNetDeviceDiscovered((device) => {
+    deviceStore.addDiscoveredNetDevice(device)
+  })
+  nanoIpc.onNetDeviceLost((payload) => {
+    deviceStore.removeDiscoveredNetDevice(payload.deviceId)
   })
 
   // get initial device list
