@@ -3,6 +3,7 @@ import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
 import nanoSerialApi from './nanoSerialApi'
+import nanoNetApi from './nanoNetApi'
 import installExtension from 'electron-devtools-installer'
 
 const zoomFactor = 1
@@ -127,13 +128,22 @@ app.whenReady().then(() => {
   ipcMain.handle('nanoSerialApi:list_devices', () => nanoSerialApi.list_devices())
   ipcMain.handle('nanoSerialApi:connect', (_event, deviceid) => nanoSerialApi.connect(deviceid))
   // FIX #1: Pass deviceid and call disconnect() instead of referencing the method.
-  ipcMain.handle('nanoSerialApi:disconnect', (_event, deviceid) =>
-    nanoSerialApi.disconnect(deviceid)
+  // Route by deviceId: 'net:*' → nanoNetApi, else → nanoSerialApi.
+  ipcMain.handle('nanoSerialApi:disconnect', (_event, deviceid: string) =>
+    deviceid.startsWith('net:') ? nanoNetApi.disconnect(deviceid) : nanoSerialApi.disconnect(deviceid)
   )
   // FIX #3: Renderer (preload) already JSON.stringify()s; pass the string
   // directly so serialisation happens exactly once end-to-end.
+  // Route by deviceId: 'net:*' → nanoNetApi, else → nanoSerialApi.
   ipcMain.handle('nanoSerialApi:send', (_event, deviceid: string, jsonstr: string) =>
-    nanoSerialApi.send(deviceid, jsonstr)
+    deviceid.startsWith('net:') ? nanoNetApi.send(deviceid, jsonstr) : nanoSerialApi.send(deviceid, jsonstr)
+  )
+  // Net-specific IPC: connect via TCP/WiFi and disconnect by deviceId.
+  ipcMain.handle('nanoNet:connect', (_event, ip: string, psk: string) =>
+    nanoNetApi.connect(ip, psk)
+  )
+  ipcMain.handle('nanoNet:disconnect', (_event, deviceid: string) =>
+    nanoNetApi.disconnect(deviceid)
   )
   const mainWindow = createMainWindow()
   ipcMain.on('electron:minimizeWindow', () => mainWindow.minimize())
@@ -183,6 +193,26 @@ app.whenReady().then(() => {
   nanoSerialApi.on('nanoSerialApi:update', (deviceid, data) => {
     if (!data.startsWith('{"idle"') && !data.startsWith('{"p"') && !data.startsWith('{"ks"'))
       console.log('Update event', deviceid, data)
+    mainWindow.webContents.send('nanoSerialApi:event', 'update', deviceid, data)
+  })
+
+  // Forward nanoNetApi events over the SAME channel so the renderer's existing
+  // handler processes WiFi/TCP devices identically to serial devices.
+  nanoNetApi.on('nanoSerialApi:connected', (deviceid, data) => {
+    console.log('[net] Connected event', deviceid, data)
+    mainWindow.webContents.send('nanoSerialApi:event', 'connected', deviceid, data)
+  })
+  nanoNetApi.on('nanoSerialApi:disconnected', (deviceid, data) => {
+    console.log('[net] Disconnected event', deviceid, data)
+    mainWindow.webContents.send('nanoSerialApi:event', 'disconnected', deviceid, data)
+  })
+  nanoNetApi.on('nanoSerialApi:device-error', (deviceid, data) => {
+    console.log('[net] Error event', deviceid, data)
+    mainWindow.webContents.send('nanoSerialApi:event', 'device-error', deviceid, data)
+  })
+  nanoNetApi.on('nanoSerialApi:update', (deviceid, data) => {
+    if (!data.startsWith('{"idle"') && !data.startsWith('{"p"') && !data.startsWith('{"ks"'))
+      console.log('[net] Update event', deviceid, data)
     mainWindow.webContents.send('nanoSerialApi:event', 'update', deviceid, data)
   })
   const menu = new Menu()

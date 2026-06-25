@@ -9,6 +9,7 @@ contextBridge.exposeInMainWorld('nanoIpc', {
     return ipcRenderer.invoke('nanoSerialApi:connect', deviceid)
   },
   disconnect(deviceid) {
+    // Routes to nanoNetApi or nanoSerialApi in main process based on deviceId prefix.
     return ipcRenderer.invoke('nanoSerialApi:disconnect', deviceid)
   },
   on(callback) {
@@ -21,7 +22,15 @@ contextBridge.exposeInMainWorld('nanoIpc', {
     // Do NOT stringify again — double-encoding sends a quoted string like
     // "{\"settings\":\"?\"}" which the firmware parses as a string, matches no
     // command, and silently never replies. Pass the string through unchanged.
+    // Routes to nanoNetApi or nanoSerialApi in main process based on deviceId prefix.
     return ipcRenderer.invoke('nanoSerialApi:send', deviceid, jsonstr)
+  },
+  connectNet(ip: string, psk: string) {
+    // Open a TCP socket to ip:3333, run the HMAC handshake, resolve with deviceId.
+    return ipcRenderer.invoke('nanoNet:connect', ip, psk)
+  },
+  disconnectNet(deviceid: string) {
+    return ipcRenderer.invoke('nanoNet:disconnect', deviceid)
   }
 })
 

@@ -74,12 +74,78 @@
         {{ feedback }}
       </p>
     </div>
+
+    <!-- ── Connect app over network ──────────────────────────────────────────── -->
+    <div class="border-t border-zinc-800 px-4 py-3">
+      <p class="mb-3 text-xs font-medium text-zinc-400 uppercase tracking-wide">
+        Connect app over network
+      </p>
+      <div class="flex flex-col gap-3">
+        <!-- Device IP -->
+        <div class="flex flex-col gap-1">
+          <label class="text-xs text-muted-foreground">Device IP</label>
+          <Input
+            v-model="netIp"
+            placeholder="192.168.1.x"
+            :disabled="netConnecting || netConnected"
+            class="bg-zinc-900 font-mono"
+          />
+        </div>
+
+        <!-- PSK (pre-shared key) -->
+        <div class="flex flex-col gap-1">
+          <label class="text-xs text-muted-foreground">PSK (pre-shared key)</label>
+          <div class="relative">
+            <Input
+              v-model="netPsk"
+              :type="showNetPsk ? 'text' : 'password'"
+              placeholder="Device PSK"
+              :disabled="netConnecting || netConnected"
+              class="bg-zinc-900 pr-9"
+            />
+            <button
+              type="button"
+              class="absolute inset-y-0 right-2 flex items-center text-muted-foreground hover:text-zinc-100"
+              tabindex="-1"
+              @click="showNetPsk = !showNetPsk"
+            >
+              <component :is="showNetPsk ? EyeOff : Eye" class="size-4" />
+            </button>
+          </div>
+        </div>
+
+        <!-- Connect / Disconnect button -->
+        <Button
+          v-if="!netConnected"
+          :disabled="netConnecting || !netIp.trim() || !netPsk.trim()"
+          class="w-full"
+          @click="connectNet"
+        >
+          <component :is="netConnecting ? Loader2 : NetworkIcon" class="mr-2 size-4" :class="netConnecting ? 'animate-spin' : ''" />
+          {{ netConnecting ? 'Connecting…' : 'Connect' }}
+        </Button>
+        <Button
+          v-else
+          variant="destructive"
+          class="w-full"
+          @click="disconnectNet"
+        >
+          <NetworkIcon class="mr-2 size-4" />
+          Disconnect ({{ netDeviceId }})
+        </Button>
+
+        <!-- Net connection status -->
+        <p v-if="netFeedback" class="text-center text-xs" :class="netFeedbackOk ? 'text-green-400' : 'text-red-400'">
+          {{ netFeedback }}
+        </p>
+      </div>
+    </div>
   </ConfigSection>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
-import { Wifi, Eye, EyeOff, Wifi as WifiIcon } from 'lucide-vue-next'
+import { ref, onMounted } from 'vue'
+import { Wifi, Eye, EyeOff, Wifi as WifiIcon, Network as NetworkIcon, Loader2 } from 'lucide-vue-next'
 import ConfigSection from '@renderer/components/common/ConfigSection.vue'
 import { Input } from '@renderer/components/ui/input'
 import { Switch } from '@renderer/components/ui/switch'
@@ -88,7 +154,7 @@ import { useDeviceStore } from '@renderer/deviceStore'
 
 const deviceStore = useDeviceStore()
 
-// Local form state — seeded from stored settings when available
+// ── Device WiFi credentials (sent to firmware) ────────────────────────────────
 const ssid = ref(deviceStore.settings?.wifiSsid ?? '')
 const password = ref(deviceStore.settings?.wifiPassword ?? '')
 const wifiEnabled = ref(deviceStore.settings?.wifiEnabled ?? false)
@@ -114,5 +180,48 @@ function connect() {
     feedbackOk.value = ok
     feedback.value = ok ? 'Settings sent to device.' : (err ?? 'Failed.')
   })
+}
+
+// ── Connect app over network (TCP/WiFi to device) ────────────────────────────
+const netIp = ref('')
+const netPsk = ref('')
+const showNetPsk = ref(false)
+const netConnecting = ref(false)
+const netConnected = ref(false)
+const netDeviceId = ref('')
+const netFeedback = ref('')
+const netFeedbackOk = ref(true)
+
+async function connectNet() {
+  netFeedback.value = ''
+  netConnecting.value = true
+  try {
+    const deviceId = await window.nanoIpc.connectNet(netIp.value.trim(), netPsk.value)
+    // On success the 'connected' event fires through the existing nanoSerialApi:event
+    // channel, which triggers deviceStore.connectDevice + profiles/settings query.
+    netDeviceId.value = deviceId
+    netConnected.value = true
+    netFeedbackOk.value = true
+    netFeedback.value = 'Connected as ' + deviceId
+  } catch (err: unknown) {
+    netFeedbackOk.value = false
+    netFeedback.value = err instanceof Error ? err.message : String(err)
+  } finally {
+    netConnecting.value = false
+  }
+}
+
+async function disconnectNet() {
+  netFeedback.value = ''
+  try {
+    await window.nanoIpc.disconnectNet(netDeviceId.value)
+    netConnected.value = false
+    netDeviceId.value = ''
+    netFeedbackOk.value = true
+    netFeedback.value = 'Disconnected.'
+  } catch (err: unknown) {
+    netFeedbackOk.value = false
+    netFeedback.value = err instanceof Error ? err.message : String(err)
+  }
 }
 </script>

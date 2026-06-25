@@ -5,6 +5,10 @@ export interface INanoSerialApi {
   on(callback: (eventid: string, deviceid: string, data: string) => void): void
   send(deviceid: string, jsonstr: string): Promise<void>
   save(deviceid: string): Promise<void>
+  /** Open a TCP connection to ip:3333, run mutual-auth HMAC handshake, resolve with deviceId. */
+  connectNet(ip: string, psk: string): Promise<string>
+  /** Gracefully close a net connection. */
+  disconnectNet(deviceid: string): Promise<void>
 }
 
 export interface IElectronApi {
