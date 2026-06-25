@@ -16,8 +16,12 @@ contextBridge.exposeInMainWorld('nanoIpc', {
       callback(eventid, deviceid, data)
     })
   },
-  send(deviceid, obj) {
-    return ipcRenderer.invoke('nanoSerialApi:send', deviceid, JSON.stringify(obj))
+  send(deviceid, jsonstr) {
+    // The renderer already JSON.stringify()s every payload (see deviceStore.ts).
+    // Do NOT stringify again — double-encoding sends a quoted string like
+    // "{\"settings\":\"?\"}" which the firmware parses as a string, matches no
+    // command, and silently never replies. Pass the string through unchanged.
+    return ipcRenderer.invoke('nanoSerialApi:send', deviceid, jsonstr)
   }
 })
 
