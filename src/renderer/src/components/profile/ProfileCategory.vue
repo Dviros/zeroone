@@ -145,19 +145,16 @@ defineProps({
 const expanded = ref(true)
 const confirmDelete = ref(false)
 
-const onProfileDrop = (event, categoryIndex) => {
-  if (event.moved) {
-    const profile = event.moved.element
-    const oldIndex = event.moved.oldIndex
-    const newIndex = event.moved.newIndex
-    // store.moveProfile(profile.id, oldIndex, newIndex)
-    console.log('Move profile not implemented!')
-  }
-  if (event.added) {
-    const profile = event.added.element
-    const newIndex = event.added.newIndex
-    // store.changeProfileCategory(profile.id, categoryIndex, newIndex)
-    console.log('Change profile category not implemented!')
+const onProfileDrop = (event, _categoryIndex) => {
+  if (event.moved || event.added) {
+    // After vuedraggable mutates the list, re-derive the full canonical order from all tags
+    // and push it to the device so the FW profile list stays consistent.
+    const reorderedNames: string[] = []
+    deviceStore.profileTags.forEach((tag) => {
+      const tagProfiles = deviceStore.profilesByTag[tag] ?? []
+      tagProfiles.forEach((p) => reorderedNames.push(p.name))
+    })
+    deviceStore.setProfileNames(reorderedNames)
   }
 }
 </script>

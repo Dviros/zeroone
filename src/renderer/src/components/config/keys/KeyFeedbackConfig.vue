@@ -4,27 +4,23 @@
     :icon-component="AudioLines"
     :show-toggle="true"
   >
-    <template v-if="false">
-      <SteppedSlider
-        v-model="auditoryHapticLevel"
-        :label="$t('config_options.feedback_designer.auditory_response.haptic_level')"
-      />
-      <Separator />
-      <SteppedSlider
-        v-model="auditoryMagnitude"
-        :label="$t('config_options.feedback_designer.auditory_response.magnitude')"
-        :max="3"
-        :named-positions="[
-          { value: 0, label: 'Faint' },
-          { value: 1, label: 'Soft' },
-          { value: 2, label: 'Normal' },
-          { value: 3, label: 'Loud' }
-        ]"
-      />
-    </template>
-    <template v-else>
-      <WIP />
-    </template>
+    <!-- Unhidden: wired to local refs; connect to store when firmware API is ready -->
+    <SteppedSlider
+      v-model="auditoryHapticLevel"
+      :label="$t('config_options.feedback_designer.auditory_response.haptic_level')"
+    />
+    <Separator />
+    <SteppedSlider
+      v-model="auditoryMagnitude"
+      :label="$t('config_options.feedback_designer.auditory_response.magnitude')"
+      :max="3"
+      :named-positions="[
+        { value: 0, label: 'Faint' },
+        { value: 1, label: 'Soft' },
+        { value: 2, label: 'Normal' },
+        { value: 3, label: 'Loud' }
+      ]"
+    />
   </ConfigSection>
 </template>
 <script setup>

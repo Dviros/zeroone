@@ -11,8 +11,8 @@
       @delete="(index) => deviceStore.removeKeyAction(index, appStore.selectedKey, 0)"
     />
   </ConfigSection>
+  <!-- Unhidden: firmware now supports Released and Held actions -->
   <ConfigSection
-    v-if="false"
     :title="`${appStore.selectedKey} Released`"
     :icon-component="PanelBottomOpen"
   >
@@ -27,7 +27,7 @@
       @delete="(index) => deviceStore.removeKeyAction(index, appStore.selectedKey, 1)"
     />
   </ConfigSection>
-  <ConfigSection v-if="false" :title="`${appStore.selectedKey} Held`" :icon-component="Clock2">
+  <ConfigSection :title="`${appStore.selectedKey} Held`" :icon-component="Clock2">
     <template #title>
       <span class="text-zinc-500">&nbsp;({{ heldActions.length }})</span></template
     >

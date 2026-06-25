@@ -46,6 +46,16 @@ const createMainWindow = () => {
       devTools: is.dev,
       preload: join(__dirname, '../preload/index.js'),
       zoomFactor: zoomFactor,
+      // FIX #10: Enforce renderer isolation. contextIsolation prevents the
+      // renderer from accessing Node/Electron globals directly; nodeIntegration
+      // false ensures require() is unavailable in the renderer even if
+      // contextIsolation were somehow bypassed. sandbox:false is required
+      // because the preload uses Node APIs (ipcRenderer); if sandbox:true is
+      // desired in the future the preload must be rewritten without Node APIs.
+      // Risk: sandbox:false means the preload process is not OS-sandboxed —
+      // acceptable here because the preload is bundled and not user-supplied.
+      contextIsolation: true,
+      nodeIntegration: false,
       sandbox: false
     }
   })
@@ -64,8 +74,18 @@ const createMainWindow = () => {
     mainWindow.webContents.send('electron:unmaximized')
   })
 
+  // FIX #9 (also applies to window.open() URLs): validate before shell open.
   mainWindow.webContents.setWindowOpenHandler((details) => {
-    shell.openExternal(details.url)
+    try {
+      const parsed = new URL(details.url)
+      if (parsed.protocol === 'http:' || parsed.protocol === 'https:') {
+        shell.openExternal(details.url)
+      } else {
+        console.warn('setWindowOpenHandler: rejected non-http(s) URL', details.url)
+      }
+    } catch {
+      console.warn('setWindowOpenHandler: invalid URL', details.url)
+    }
     return { action: 'deny' }
   })
 
@@ -105,10 +125,15 @@ app.whenReady().then(() => {
   })
 
   ipcMain.handle('nanoSerialApi:list_devices', () => nanoSerialApi.list_devices())
-  ipcMain.handle('nanoSerialApi:connect', (event, deviceid) => nanoSerialApi.connect(deviceid))
-  ipcMain.handle('nanoSerialApi:disconnect', () => nanoSerialApi.disconnect)
-  ipcMain.handle('nanoSerialApi:send', (event, ...data) =>
-    nanoSerialApi.send(data[0], JSON.parse(data[1]))
+  ipcMain.handle('nanoSerialApi:connect', (_event, deviceid) => nanoSerialApi.connect(deviceid))
+  // FIX #1: Pass deviceid and call disconnect() instead of referencing the method.
+  ipcMain.handle('nanoSerialApi:disconnect', (_event, deviceid) =>
+    nanoSerialApi.disconnect(deviceid)
+  )
+  // FIX #3: Renderer (preload) already JSON.stringify()s; pass the string
+  // directly so serialisation happens exactly once end-to-end.
+  ipcMain.handle('nanoSerialApi:send', (_event, deviceid: string, jsonstr: string) =>
+    nanoSerialApi.send(deviceid, jsonstr)
   )
   const mainWindow = createMainWindow()
   ipcMain.on('electron:minimizeWindow', () => mainWindow.minimize())
@@ -120,7 +145,19 @@ app.whenReady().then(() => {
     }
   })
   ipcMain.on('electron:closeWindow', () => mainWindow.close())
-  ipcMain.on('electron:openExternal', (_event, url) => shell.openExternal(url))
+  // FIX #9: Validate that URL is http/https before handing to the OS shell.
+  ipcMain.on('electron:openExternal', (_event, url) => {
+    try {
+      const parsed = new URL(url)
+      if (parsed.protocol === 'http:' || parsed.protocol === 'https:') {
+        shell.openExternal(url)
+      } else {
+        console.warn('openExternal: rejected non-http(s) URL', url)
+      }
+    } catch {
+      console.warn('openExternal: invalid URL', url)
+    }
+  })
   ipcMain.on('electron:openDevTools', () => mainWindow.webContents.toggleDevTools())
   ipcMain.on('electron:reload', () => mainWindow.webContents.reloadIgnoringCache())
   nanoSerialApi.on('nanoSerialApi:device-attached', (deviceid, data) => {
@@ -158,7 +195,7 @@ app.whenReady().then(() => {
             label: subMenuItem.label,
             accelerator: subMenuItem.shortcut,
             click:
-              subMenuItem.action ||
+              (subMenuItem as { action?: () => void }).action ||
               (() => {
                 mainWindow.webContents.send('electron:menu', key)
               })

@@ -123,6 +123,7 @@ import { ref, computed } from 'vue'
 import { cn } from '@renderer/lib/utils'
 import SendKeyAction from '@renderer/components/config/actions/SendKeyAction.vue'
 import SendMidiCCAction from '@renderer/components/config/actions/SendMidiCCAction.vue'
+import SendStringAction from '@renderer/components/config/actions/SendStringAction.vue'
 import ScrambleText from '@renderer/components/common/ScrambleText.vue'
 import { ChevronsUpDown, Check, GripHorizontal, Trash2, X } from 'lucide-vue-next'
 import { useElementSize } from '@vueuse/core'
@@ -154,6 +155,7 @@ const props = defineProps({
 const actionTypeOptions = ref({
   key: { label: 'Press a Keyboard Key', component: SendKeyAction },
   midi: { label: 'Send a MIDI Control Change', component: SendMidiCCAction },
+  string: { label: 'Type a String', component: SendStringAction },
   next_profile: { label: 'Go to the Next Profile', component: null },
   prev_profile: { label: 'Go to the Previous Profile', component: null },
   profile: { label: 'Go to a specific Profile', component: SwitchProfileAction }

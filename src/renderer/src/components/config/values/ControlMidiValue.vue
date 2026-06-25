@@ -82,13 +82,15 @@ watch(totalDetentsInput, (totalDetents) => {
   nextTick(() => {
     totalDetentsInput.value = Math.max(0, Math.min(Number(totalDetents), 9999))
   })
-  emit('update', { haptic: { endPos: totalDetents } })
+  // Fixed: spread existing haptic so sibling fields aren't destroyed by Object.assign in store
+  emit('update', { haptic: { ...props.value.haptic, endPos: Number(totalDetents) } })
 })
 
 watch(detentsPerRotationInput, (detentsPerRotation) => {
   nextTick(() => {
     detentsPerRotationInput.value = Math.max(0, Math.min(Number(detentsPerRotation), 9999))
   })
-  emit('update', { haptic: { detentCount: detentsPerRotation } })
+  // Fixed: same partial-overwrite guard
+  emit('update', { haptic: { ...props.value.haptic, detentCount: Number(detentsPerRotation) } })
 })
 </script>

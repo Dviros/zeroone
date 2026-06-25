@@ -7,6 +7,10 @@ import KnobMappingConfig from '@renderer/components/config/knob/KnobMappingConfi
 import KeyMappingConfig from '@renderer/components/config/keys/KeyMappingConfig.vue'
 import { shallowRef } from 'vue'
 import KeyFeedbackConfig from './components/config/keys/KeyFeedbackConfig.vue'
+// APP3-owned panels — imported by contract path
+import WiFiConfig from '@renderer/components/config/wifi/WiFiConfig.vue'
+import SpriteConfig from '@renderer/components/config/sprites/SpriteConfig.vue'
+import IntegrationsConfig from '@renderer/components/config/integrations/IntegrationsConfig.vue'
 
 export const useAppStore = defineStore('app', {
   state: () => {
@@ -42,6 +46,25 @@ export const useAppStore = defineStore('app', {
             titleKey: 'config_options.light_designer.title',
             component: shallowRef(KeyLightConfig)
           }
+        },
+        // Global device-level panels (APP3-owned components, registered here per contract)
+        wifi: {
+          main: {
+            titleKey: 'config_options.wifi.title',
+            component: shallowRef(WiFiConfig)
+          }
+        },
+        sprites: {
+          main: {
+            titleKey: 'config_options.sprites.title',
+            component: shallowRef(SpriteConfig)
+          }
+        },
+        integrations: {
+          main: {
+            titleKey: 'config_options.integrations.title',
+            component: shallowRef(IntegrationsConfig)
+          }
         }
       },
       previewDeviceModel: localStorage.getItem('previewDeviceModel') || 'nanoOne',
@@ -58,7 +81,11 @@ export const useAppStore = defineStore('app', {
   actions: {
     selectConfigFeature(feature) {
       this.selectedFeature = feature
-      if (!this.currentConfigPages[this.currentConfigPage]) this.setCurrentConfigPage('mapping')
+      // Global panels ('wifi','sprites','integrations') have only a 'main' sub-page
+      if (!this.currentConfigPages[this.currentConfigPage]) {
+        const firstPage = Object.keys(this.currentConfigPages)[0] || 'mapping'
+        this.setCurrentConfigPage(firstPage)
+      }
     },
     selectKey(key) {
       this.selectedKey = key
@@ -75,7 +102,7 @@ export const useAppStore = defineStore('app', {
       this.profileManagerDragging = dragging
     },
     setShowProfileConfig(show) {
-      show = false // TODO: Remove this / replace with actual logic
+      // Fixed: was always overwriting arg with false, so profile panel never opened
       this.showProfileConfig = show
     },
     toggleSelectOnInput() {

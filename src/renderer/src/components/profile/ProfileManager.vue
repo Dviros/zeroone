@@ -148,7 +148,8 @@ const maxProfiles = 10
 const renderProfileConfig = ref(appStore.showProfileConfig)
 const renderProfileList = ref(!appStore.showProfileConfig)
 
-watch(appStore.showProfileConfig, (value) => {
+// Fixed: watching a plain bool property directly never fires; wrap in a getter
+watch(() => appStore.showProfileConfig, (value) => {
   if (value) {
     renderProfileConfig.value = true
     setTimeout(() => {

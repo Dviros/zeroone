@@ -91,6 +91,24 @@ export interface DeviceSettings {
   midiUsb: MidiSettings
   midi2: MidiSettings
   idleTimeout: number
+  // WiFi / PD / sprite fields (FW5 contract)
+  wifiSsid: string
+  wifiPassword: string
+  wifiEnabled: boolean
+  pdVoltage?: number
+  activeSprite?: string
+}
+
+// WiFi runtime status pushed by firmware as {"wifi":{status,ip}}
+export interface WifiStatus {
+  status: 'connected' | 'connecting' | 'disconnected' | 'ap'
+  ip?: string
+}
+
+// Sprite metadata returned by firmware as {"sprites":[...]}
+export interface SpriteInfo {
+  name: string
+  size?: number
 }
 
 export interface MidiSettings {
@@ -112,6 +130,11 @@ interface UpdateData {
   ku: number | undefined
   settings: DeviceSettings | undefined
   error: string | undefined // TODO: Error messages have eventid 'update', change this once it's fixed
+  saved: boolean | undefined    // firmware may send {"saved":true} as an update payload
+  wifi: WifiStatus | undefined  // runtime wifi status pushed from device
+  sprites: SpriteInfo[] | undefined // list of stored sprites
+  ack: string | undefined       // ACK command name (FW3 contract)
+  ok: boolean | undefined       // ACK result
 }
 
 const { nanoIpc } = window
@@ -163,7 +186,13 @@ export const useDeviceStore = defineStore('device', {
       }
     } as Value,
     defaultKeyAction: { type: 'next_profile' } as Action,
-    orientationLabels: [270, 0, 90, 180]
+    orientationLabels: [270, 0, 90, 180],
+    // WiFi runtime state (populated from incoming {"wifi":{...}} events)
+    wifiStatus: null as WifiStatus | null,
+    // Sprite list from device
+    sprites: [] as SpriteInfo[],
+    // Per-pending-ACK callbacks: keyed by command name
+    _pendingAcks: {} as Record<string, ((ok: boolean, err?: string) => void)[]>
   }),
   getters: {
     connected: (state) => state.currentDeviceId !== null,
@@ -678,6 +707,143 @@ export const useDeviceStore = defineStore('device', {
         )
         this.setDirtyState(true)
       }
+    },
+
+    // ── WiFi ──────────────────────────────────────────────────────────────────
+    /** Send WiFi credentials + enabled flag to the firmware. */
+    setWifi(ssid: string, password: string, enabled: boolean) {
+      if (!this.currentDeviceId) return
+      nanoIpc.send(
+        this.currentDeviceId,
+        JSON.stringify({ wifi: { ssid, password, enabled } })
+      )
+      // Optimistically reflect in settings so UI stays consistent
+      if (this.settings) {
+        this.settings.wifiSsid = ssid
+        this.settings.wifiPassword = password
+        this.settings.wifiEnabled = enabled
+      }
+    },
+
+    /** Called by event handler when device pushes {"wifi":{...}}. */
+    setWifiStatus(status: WifiStatus) {
+      this.wifiStatus = status
+    },
+
+    // ── Sprites ───────────────────────────────────────────────────────────────
+    /** Request sprite list from device. */
+    requestSpriteList() {
+      if (!this.currentDeviceId) return
+      nanoIpc.send(this.currentDeviceId, JSON.stringify({ sprite: { op: 'list' } }))
+    },
+
+    /** Update local sprite list (set by event handler from {"sprites":[...]} push). */
+    setSpriteList(sprites: SpriteInfo[]) {
+      this.sprites = sprites
+    },
+
+    /** Select an active sprite (per-profile or global). */
+    selectSprite(name: string) {
+      if (!this.currentDeviceId) return
+      nanoIpc.send(this.currentDeviceId, JSON.stringify({ sprite: { op: 'select', name } }))
+      if (this.settings) this.settings.activeSprite = name
+    },
+
+    /** Delete a sprite by name. */
+    deleteSprite(name: string) {
+      if (!this.currentDeviceId) return
+      nanoIpc.send(this.currentDeviceId, JSON.stringify({ sprite: { op: 'delete', name } }))
+      this.sprites = this.sprites.filter((s) => s.name !== name)
+    },
+
+    /**
+     * Chunked sprite upload. Reads `file` as base64 in 1KB chunks and emits
+     * sprite begin / data / end commands over the serial JSON channel.
+     * `onProgress` receives [0..1]. Returns a Promise that resolves when done.
+     */
+    async uploadSprite(
+      file: File,
+      onProgress?: (progress: number) => void
+    ): Promise<void> {
+      if (!this.currentDeviceId) throw new Error('No device connected')
+      // 1024 raw bytes → ~1.4KB base64 → JSON frame well under 1.5KB serial limit
+      const CHUNK_SIZE = 1024
+      const deviceId = this.currentDeviceId
+      const name = file.name.replace(/[^a-zA-Z0-9._-]/g, '_')
+
+      const arrayBuffer = await file.arrayBuffer()
+      const bytes = new Uint8Array(arrayBuffer)
+      const totalChunks = Math.ceil(bytes.length / CHUNK_SIZE)
+
+      // Encode a Uint8Array slice to base64 without atob/btoa size limits
+      const toBase64 = (chunk: Uint8Array): string => {
+        let binary = ''
+        for (let i = 0; i < chunk.length; i++) binary += String.fromCharCode(chunk[i])
+        return btoa(binary)
+      }
+
+      // CRC-32 (IEEE 802.3 / zlib): polynomial 0xEDB88320, init 0xFFFFFFFF, final XOR 0xFFFFFFFF.
+      // Accumulates incrementally over all raw bytes so we can stream chunks without buffering twice.
+      let crcState = 0xffffffff
+      const crc32Update = (state: number, data: Uint8Array): number => {
+        let c = state
+        for (let i = 0; i < data.length; i++) {
+          c ^= data[i]
+          for (let k = 0; k < 8; k++) {
+            c = (c & 1) ? (0xedb88320 ^ (c >>> 1)) : (c >>> 1)
+          }
+        }
+        return c
+      }
+
+      // begin
+      nanoIpc.send(
+        deviceId,
+        JSON.stringify({ sprite: { op: 'begin', name, size: bytes.length } })
+      )
+
+      for (let i = 0; i < totalChunks; i++) {
+        const slice = bytes.slice(i * CHUNK_SIZE, (i + 1) * CHUNK_SIZE)
+        // Accumulate CRC over the raw bytes of this chunk (same bytes being base64-encoded)
+        crcState = crc32Update(crcState, slice)
+        nanoIpc.send(
+          deviceId,
+          JSON.stringify({ sprite: { op: 'data', name, seq: i, data: toBase64(slice) } })
+        )
+        onProgress?.((i + 1) / totalChunks)
+        // Yield to the event loop so the UI can update between chunks
+        await new Promise<void>((resolve) => setTimeout(resolve, 0))
+      }
+
+      // Finalise CRC-32: XOR with 0xFFFFFFFF and force unsigned 32-bit
+      const crc32 = ((crcState ^ 0xffffffff) >>> 0)
+
+      // end — send computed CRC so firmware can verify the received bytes
+      nanoIpc.send(deviceId, JSON.stringify({ sprite: { op: 'end', name, crc32 } }))
+    },
+
+    // ── Integrations ─────────────────────────────────────────────────────────
+    /** Send an integration enable/configure command. */
+    setIntegration(integrationId: string, enabled: boolean, params: Record<string, unknown> = {}) {
+      if (!this.currentDeviceId) return
+      nanoIpc.send(
+        this.currentDeviceId,
+        JSON.stringify({ integration: { id: integrationId, enabled, params } })
+      )
+    },
+
+    // ── ACK plumbing ─────────────────────────────────────────────────────────
+    /** Register a one-shot callback for an ACK response from the firmware. */
+    _onAck(cmd: string, cb: (ok: boolean, err?: string) => void) {
+      if (!this._pendingAcks[cmd]) this._pendingAcks[cmd] = []
+      this._pendingAcks[cmd].push(cb)
+    },
+
+    /** Dispatch an incoming ACK to waiting callbacks. */
+    _dispatchAck(cmd: string, ok: boolean, err?: string) {
+      const cbs = this._pendingAcks[cmd] || []
+      this._pendingAcks[cmd] = []
+      cbs.forEach((cb) => cb(ok, err))
     }
   }
 })
@@ -705,6 +871,7 @@ export const initializeDevices = () => {
       deviceStore.setDirtyState(false)
       messageCallbacks.forEach((callback) => callback('Saved', 'Changes saved to device'))
     }
+    // Bug fix: firmware also sends {"saved":true} inside an 'update' payload — handled below
     if (eventid === 'device-attached') {
       deviceStore.attachDevice(deviceid)
       console.log('Attached device', deviceid)
@@ -766,6 +933,24 @@ export const initializeDevices = () => {
       }
       if (update.settings !== undefined) {
         deviceStore.setSettings(update.settings, false)
+      }
+      // Bug fix: firmware sends {"saved":true} as an update payload, not as eventid='saved'
+      if (update.saved === true) {
+        deviceStore.setDirtyState(false)
+        messageCallbacks.forEach((callback) => callback('Saved', 'Changes saved to device'))
+      }
+      // WiFi runtime status pushed from device
+      if (update.wifi !== undefined) {
+        deviceStore.setWifiStatus(update.wifi)
+      }
+      // Sprite list pushed from device (after a list command or after an upload)
+      if (update.sprites !== undefined) {
+        deviceStore.setSpriteList(update.sprites)
+      }
+      // ACK dispatch for config/mutating commands (FW3 contract)
+      if (update.ack !== undefined) {
+        deviceStore._dispatchAck(update.ack, update.ok ?? false,
+          update.ok ? undefined : (update as unknown as { error?: string }).error)
       }
     }
   })

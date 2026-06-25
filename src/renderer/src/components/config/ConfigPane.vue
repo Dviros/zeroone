@@ -1,6 +1,29 @@
 <template>
-  <div>
-    <template v-if="deviceStore.currentProfile">
+  <div class="flex flex-col">
+    <!-- Global panel nav: WiFi / Sprites / Integrations (always visible when connected) -->
+    <div class="flex gap-1 border-b border-zinc-800 bg-zinc-900 px-2 py-1">
+      <button
+        v-for="panel in globalPanels"
+        :key="panel.key"
+        class="rounded px-2 py-0.5 font-mono text-xs transition-colors"
+        :class="
+          appStore.selectedFeature === panel.key
+            ? 'bg-zinc-200 text-zinc-900'
+            : 'text-muted-foreground hover:bg-zinc-800 hover:text-zinc-200'
+        "
+        @click="appStore.selectConfigFeature(panel.key)"
+      >
+        {{ panel.label }}
+      </button>
+    </div>
+
+    <template v-if="isGlobalPanel">
+      <!-- Global panels (wifi/sprites/integrations) have no sub-tabs -->
+      <div class="grow overflow-y-auto">
+        <component :is="appStore.currentConfigComponent" />
+      </div>
+    </template>
+    <template v-else-if="deviceStore.currentProfile">
       <TabSelect
         v-if="showTabs"
         v-model="configPage"
@@ -38,6 +61,17 @@ import { ChevronLeft } from 'lucide-vue-next'
 
 const appStore = useAppStore()
 const deviceStore = useDeviceStore()
+
+// Features that are device-global (not profile-bound) — registered by APP3 via appStore
+const GLOBAL_FEATURES = ['wifi', 'sprites', 'integrations']
+
+const globalPanels = [
+  { key: 'wifi', label: 'WiFi' },
+  { key: 'sprites', label: 'Sprites' },
+  { key: 'integrations', label: 'Integrations' }
+]
+
+const isGlobalPanel = computed(() => GLOBAL_FEATURES.includes(appStore.selectedFeature))
 
 const configPages = computed(() => appStore.currentConfigPages)
 const configPage = computed({

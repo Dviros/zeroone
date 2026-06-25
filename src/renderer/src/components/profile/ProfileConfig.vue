@@ -5,24 +5,26 @@
   >
     <div class="my-4 px-8">
       <span class="font-mono text-sm text-muted-foreground">Title</span>
-      <Input class="font-pixelsm mt-2 uppercase" default-value="Title text" />
+      <!-- Fixed: was hardcoded default-value; now v-model bound to current profile name -->
+      <Input
+        v-model="profileName"
+        class="font-pixelsm mt-2 uppercase"
+        @blur="commitName"
+        @keydown.enter="commitName"
+      />
     </div>
     <div class="my-4 px-8">
       <span class="font-mono text-sm text-muted-foreground">Description</span>
+      <!-- Fixed: was hardcoded default-value; now v-model bound to current profile desc -->
       <Textarea
+        v-model="profileDesc"
         class="font-pixelsm mt-2 uppercase"
-        default-value="Descriptive description describing the profile"
+        @blur="commitDesc"
       />
     </div>
   </ConfigSection>
-  <ConfigSection
-    v-if="false"
-    :title="$t('config_options.profile_settings.connection_type.title')"
-    :icon-component="Cable"
-  >
-    <!-- TODO: Remove later if not needed -->
-    <TabSelect v-model="connectionType" :options="connectionTypeOptions" />
-  </ConfigSection>
+
+  <!-- connectionType section removed: was v-if=false dead code -->
 
   <ConfigSection
     :title="$t('config_options.profile_settings.internal_profile_toggle.title')"
@@ -45,27 +47,41 @@
   </ConfigSection>
 </template>
 <script setup>
-import { Cable, Replace, Type } from 'lucide-vue-next'
+import { Replace, Type } from 'lucide-vue-next'
 import ConfigSection from '@renderer/components/common/ConfigSection.vue'
 import { Separator } from '@renderer/components/ui/separator'
-import { ref } from 'vue'
-import UsbIcon from '@renderer/assets/logos/logoUsb.svg'
-import MidiIcon from '@renderer/assets/logos/logoMidi.svg'
+import { ref, watch } from 'vue'
 import { Badge } from '@renderer/components/ui/badge'
-import TabSelect from '@renderer/components/common/TabSelect.vue'
 import { Input } from '@renderer/components/ui/input'
 import { Textarea } from '@renderer/components/ui/textarea'
+import { useDeviceStore } from '@renderer/deviceStore'
 
-const connectionType = ref('usb') // TODO: replace with actual value
+const deviceStore = useDeviceStore()
 
-const connectionTypeOptions = {
-  usb: {
-    icon: UsbIcon,
-    titleKey: 'config_options.profile_settings.connection_type.usb'
-  },
-  midi: {
-    icon: MidiIcon,
-    titleKey: 'config_options.profile_settings.connection_type.midi'
+// Local refs mirror the current profile; committed on blur/enter to avoid spamming the device
+const profileName = ref(deviceStore.currentProfile?.name ?? '')
+const profileDesc = ref(deviceStore.currentProfile?.desc ?? '')
+
+// Keep local refs in sync when the selected profile changes externally
+watch(
+  () => deviceStore.currentProfile,
+  (profile) => {
+    profileName.value = profile?.name ?? ''
+    profileDesc.value = profile?.desc ?? ''
+  }
+)
+
+const commitName = () => {
+  const newName = profileName.value.trim()
+  const oldName = deviceStore.currentProfileName
+  if (newName && newName !== oldName) {
+    deviceStore.renameProfile(oldName, newName)
+  }
+}
+
+const commitDesc = () => {
+  if (deviceStore.currentProfileName) {
+    deviceStore.updateProfileDescription(deviceStore.currentProfileName, profileDesc.value)
   }
 }
 </script>
