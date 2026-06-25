@@ -170,6 +170,17 @@ onMounted(() => {
     password.value = deviceStore.settings.wifiPassword ?? ''
     wifiEnabled.value = deviceStore.settings.wifiEnabled ?? false
   }
+  // Restore the last network IP + PSK so WiFi connectivity persists across restarts.
+  try {
+    const ip = localStorage.getItem('net-last-ip') || ''
+    netIp.value = ip
+    if (ip) {
+      const map = JSON.parse(localStorage.getItem('net-psk-map') || '{}')
+      netPsk.value = map[ip] || ''
+    }
+  } catch {
+    /* ignore corrupt localStorage */
+  }
 })
 
 function connect() {
@@ -203,6 +214,16 @@ async function connectNet() {
     netConnected.value = true
     netFeedbackOk.value = true
     netFeedback.value = 'Connected as ' + deviceId
+    // Persist IP + PSK so this connection is remembered (one-click reconnect).
+    try {
+      const ip = netIp.value.trim()
+      localStorage.setItem('net-last-ip', ip)
+      const map = JSON.parse(localStorage.getItem('net-psk-map') || '{}')
+      map[ip] = netPsk.value
+      localStorage.setItem('net-psk-map', JSON.stringify(map))
+    } catch {
+      /* ignore */
+    }
   } catch (err: unknown) {
     netFeedbackOk.value = false
     netFeedback.value = err instanceof Error ? err.message : String(err)

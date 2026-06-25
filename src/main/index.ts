@@ -278,6 +278,9 @@ app.whenReady().then(() => {
       })
     )
   }
+  // Standard Edit menu — without it, macOS Cmd+X/C/V/A do nothing in inputs
+  // (paste was broken). role:'editMenu' wires the system cut/copy/paste/selectAll.
+  menu.append(new MenuItem({ role: 'editMenu' }))
   if (is.dev) {
     menu.append(
       new MenuItem({

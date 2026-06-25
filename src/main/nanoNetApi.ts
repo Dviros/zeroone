@@ -39,6 +39,7 @@ class NanoNetApi extends EventEmitter {
 
     return new Promise<string>((resolve, reject) => {
       const socket = net.createConnection({ host: ip, port: DEVICE_PORT })
+      socket.setNoDelay(true) // disable Nagle — low-latency small JSON frames
       // Accumulate inbound text before the handshake is done.
       let rxBuf = ''
       let handshakeDone = false
