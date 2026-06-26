@@ -101,7 +101,10 @@ const deviceStore = useDeviceStore()
 //   }
 // }
 
-const outputRampValues = ref([25, 40, 80, 200, 10000])
+// Output-ramp steps (units/sec for the haptic PID). The old top value of 10000
+// slewed the motor output too fast and caused severe coil whine / static. Cap the
+// max at 1000 — responsive but safe (firmware also clamps to <=5000 as a backstop).
+const outputRampValues = ref([25, 40, 80, 200, 1000])
 
 const outputRampIndex = outputRampValues.value.indexOf(deviceStore.activeValue?.haptic?.outputRamp)
 const outputRampDampening = ref(outputRampIndex === -1 ? 2 : outputRampIndex)

@@ -79,18 +79,25 @@ watch(valueMaxInput, (valueMax) => {
 })
 
 watch(totalDetentsInput, (totalDetents) => {
+  // Min 1: 0/empty (incl. a leading-zero mid-type) underflows the detent range.
+  // Emit the CLAMPED value, never the raw input, so the device never sees 0.
+  const clamped = Math.max(1, Math.min(Number(totalDetents) || 0, 9999))
   nextTick(() => {
-    totalDetentsInput.value = Math.max(0, Math.min(Number(totalDetents), 9999))
+    totalDetentsInput.value = clamped
   })
   // Fixed: spread existing haptic so sibling fields aren't destroyed by Object.assign in store
-  emit('update', { haptic: { ...props.value.haptic, endPos: Number(totalDetents) } })
+  emit('update', { haptic: { ...props.value.haptic, endPos: clamped } })
 })
 
 watch(detentsPerRotationInput, (detentsPerRotation) => {
+  // detentCount is the FOC detent divisor — 0 (e.g. typing a value starting with 0)
+  // causes a divide-by-zero that stalls/kills the haptic motor and needs a power
+  // cycle. Minimum 1, and emit the CLAMPED value so the device never receives 0.
+  const clamped = Math.max(1, Math.min(Number(detentsPerRotation) || 0, 9999))
   nextTick(() => {
-    detentsPerRotationInput.value = Math.max(0, Math.min(Number(detentsPerRotation), 9999))
+    detentsPerRotationInput.value = clamped
   })
   // Fixed: same partial-overwrite guard
-  emit('update', { haptic: { ...props.value.haptic, detentCount: Number(detentsPerRotation) } })
+  emit('update', { haptic: { ...props.value.haptic, detentCount: clamped } })
 })
 </script>
