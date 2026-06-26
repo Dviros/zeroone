@@ -44,20 +44,19 @@
             <template v-else> Device </template>
           </MenubarTrigger>
           <MenubarContent>
-            <!-- TODO: Switch keyboard shortcut icons based on platform -->
-            <MenubarItem v-if="false" @click="deviceStore.setConnected(!deviceStore.connected)">
-              {{
-                deviceStore.connected ? $t('navbar.device.disconnect') : $t('navbar.device.connect')
-              }}
+            <!-- ── Connection management (always available) ──────────────── -->
+            <MenubarItem
+              v-if="deviceStore.connected"
+              class="flex justify-between gap-4"
+              @click="deviceStore.disconnectDevice(deviceStore.currentDeviceId)"
+            >
+              <span>Disconnect</span>
+              <span class="font-mono text-xs text-zinc-500">{{ deviceStore.currentDeviceId }}</span>
               <MenubarShortcut v-if="showShortcuts">⌘D</MenubarShortcut>
             </MenubarItem>
-            <MenubarItem v-if="deviceStore.attachedDeviceIds.length > 1"
-              >Next Device
-              <MenubarShortcut v-if="showShortcuts">⌘N</MenubarShortcut>
-            </MenubarItem>
 
-            <!-- Discovered network devices (shown when offline) -->
-            <template v-if="!deviceStore.connected && deviceStore.discoveredNetDevices.length > 0">
+            <!-- Discovered network devices — always shown so you can connect or switch -->
+            <template v-if="deviceStore.discoveredNetDevices.length > 0">
               <MenubarSeparator />
               <MenubarLabel class="px-2 py-1 text-xs text-zinc-500">Network Devices</MenubarLabel>
               <MenubarItem
@@ -66,18 +65,16 @@
                 class="flex justify-between gap-4"
                 @click="connectNetDiscovered(dev)"
               >
-                <span>{{ dev.name }}</span>
+                <span>{{ deviceStore.currentDeviceId === dev.deviceId ? '● ' : '' }}{{ dev.name }}</span>
                 <span class="font-mono text-zinc-500">{{ dev.ip }}</span>
               </MenubarItem>
             </template>
 
-            <!-- Manual connect over network (always shown when offline) -->
-            <template v-if="!deviceStore.connected">
-              <MenubarSeparator />
-              <MenubarItem @click="showNetConnect = true">
-                Connect over network…
-              </MenubarItem>
-            </template>
+            <!-- Manual connect over network — always available -->
+            <MenubarSeparator />
+            <MenubarItem @click="showNetConnect = true">
+              Connect over network…
+            </MenubarItem>
 
             <MenubarSeparator />
             <MenubarItem class="flex justify-between" @click="deviceStore.cycleOrientation">
@@ -267,6 +264,12 @@ const scrambleTitle = () => {
 
 /** One-click connect for a discovered device — uses cached PSK if available. */
 async function connectNetDiscovered(dev) {
+  // Already on this device — nothing to do.
+  if (deviceStore.currentDeviceId === dev.deviceId) return
+  // Switching from another device — drop the current connection first.
+  if (deviceStore.connected) {
+    deviceStore.disconnectDevice(deviceStore.currentDeviceId)
+  }
   const cachedPsk = deviceStore.getPersistedPsk(dev.ip)
   if (cachedPsk) {
     try {

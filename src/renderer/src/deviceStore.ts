@@ -429,10 +429,18 @@ export const useDeviceStore = defineStore('device', {
       }
     },
     disconnectDevice(deviceId: string, updateDevice: boolean = true) {
-      this.currentDeviceId = null
+      if (this.currentDeviceId === deviceId) this.currentDeviceId = null
       this.setDirtyState(false)
+      // Net devices are connections, not attached hardware — drop from the list so
+      // the device picker reflects reality. Serial removal is driven by 'device-detached'.
+      if (deviceId.startsWith('net:')) {
+        const i = this.attachedDeviceIds.indexOf(deviceId)
+        if (i !== -1) this.attachedDeviceIds.splice(i, 1)
+      }
       if (updateDevice) {
-        nanoIpc.disconnect(deviceId)
+        // Route to the correct transport so the socket actually closes.
+        if (deviceId.startsWith('net:')) nanoIpc.disconnectNet(deviceId)
+        else nanoIpc.disconnect(deviceId)
       }
     },
     setDirtyState(dirty: boolean) {
