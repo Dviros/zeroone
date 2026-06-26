@@ -3,11 +3,9 @@
   <head>
     <meta charset="UTF-8" />
     <title>ZERO/ONE Configuration Suite</title>
-    <!-- https://developer.mozilla.org/en-US/docs/Web/HTTP/CSP -->
-    <meta
-      http-equiv="Content-Security-Policy"
-      content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:"
-    />
+    <!-- CSP is set by tauri.conf.json app.security.csp (Tauri injects it as an HTTP header).
+         The meta CSP below is intentionally omitted so Tauri's broader policy
+         (allowing ipc: and asset: schemes) is not over-restricted by an HTML meta tag. -->
     <style>
       html {
           background: black;

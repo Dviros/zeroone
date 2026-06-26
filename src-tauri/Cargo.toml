@@ -1,0 +1,51 @@
+[package]
+name = "zeroone"
+version = "1.0.0"
+description = "ZERO/ONE Configuration Suite"
+authors = ["katbinaris"]
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[lib]
+# The `_lib` suffix may seem redundant but it is necessary
+# to make the lib name unique and not conflict with the bin name.
+name = "zeroone_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = [] }
+tauri-plugin-shell = "2"
+
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+# Serial port
+serialport = "4"
+
+# Async runtime
+tokio = { version = "1", features = ["rt-multi-thread", "net", "sync", "io-util", "time"] }
+
+# HMAC / SHA-256 for the HMAC-SHA256 handshake
+hmac = "0.12"
+sha2 = "0.10"
+hex = "0.4"
+# OS CSPRNG for the handshake client nonce — must be unpredictable.
+getrandom = "0.2"
+
+# mDNS discovery: mdns-sd is a pure-Rust mDNS browser that doesn't require
+# a system daemon. It supports service browsing on macOS, Linux, and Windows.
+mdns-sd = "0.11"
+
+# parking_lot for std mutex ergonomics without poisoning
+parking_lot = "0.12"
+
+[profile.release]
+panic = "abort"
+codegen-units = 1
+lto = true
+opt-level = "s"
+strip = true
