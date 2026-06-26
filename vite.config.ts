@@ -34,13 +34,13 @@ export default defineConfig({
     // Output relative to the vite root (src/renderer), so the final path is
     // <project>/dist — which tauri.conf.json references as "../dist".
     outDir: '../../dist',
-    emptyOutDir: true,
-    rollupOptions: {
-      // @tauri-apps/* packages are NOT bundled — Tauri injects them as IPC
-      // stubs via the webview runtime. Mark them external so Rollup doesn't
-      // try to resolve them from node_modules during the renderer build.
-      external: [/^@tauri-apps\//]
-    }
+    emptyOutDir: true
+    // NOTE: do NOT externalize @tauri-apps/*. Their JS must be BUNDLED — the
+    // package code calls window.__TAURI_INTERNALS__ at runtime, but the imports
+    // themselves (`@tauri-apps/api/core`, etc.) are bare specifiers a browser
+    // cannot resolve. Dev worked because Vite's dev server resolves bare imports;
+    // the production bundle left them bare → "does not resolve to a valid URL" →
+    // the Tauri bridge import threw → window.nanoIpc never installed → black screen.
   },
 
   server: {
