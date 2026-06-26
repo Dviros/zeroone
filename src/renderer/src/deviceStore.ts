@@ -296,6 +296,29 @@ export const useDeviceStore = defineStore('device', {
         return ''
       }
     },
+    /**
+     * Directly connect the last remembered network device (IP+PSK from
+     * localStorage) without waiting for mDNS. This is the reliable reconnect
+     * path — call it on boot and from Rescan. No-op if already connected or
+     * nothing is remembered.
+     */
+    async autoConnectRemembered(): Promise<void> {
+      if (this.connected) return
+      let ip = ''
+      try {
+        ip = localStorage.getItem('net-last-ip') || ''
+      } catch {
+        return
+      }
+      if (!ip) return
+      const psk = this.getPersistedPsk(ip)
+      if (!psk) return
+      try {
+        await this.connectNetDevice(ip, psk)
+      } catch (e) {
+        console.error('[net] remembered auto-connect failed:', e)
+      }
+    },
     attachDevice(deviceId: string) {
       if (!this.attachedDeviceIds.includes(deviceId)) {
         this.attachedDeviceIds.push(deviceId)
@@ -1068,6 +1091,11 @@ export const initializeDevices = () => {
       })
     }
   })
+
+  // Primary reconnect path: directly connect the last remembered network device
+  // (IP+PSK from localStorage), bypassing mDNS — discovery is unreliable on macOS
+  // (mdns-sd vs the system mDNSResponder), so we don't depend on it for reconnect.
+  deviceStore.autoConnectRemembered()
 }
 
 export const onDeviceMessage = (callback: (title: string, message: string) => void) => {
