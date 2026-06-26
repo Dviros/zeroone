@@ -1,15 +1,27 @@
 <template>
   <svg :viewBox="`0 0 ${size} ${size}`" filter="url(#blur)">
-    <filter id="blur" color-interpolation-filters="sRGB">
+    <!-- Explicit, oversized filter region so the glow isn't clipped; valid
+         identifier result names ("b1".."b5") — numeric names ("1".."5") are
+         invalid SVG filter references and render as garbage in WebKit/WKWebView
+         (Tauri) even though Chromium (the old Electron shell) tolerated them. -->
+    <filter
+      id="blur"
+      x="-50%"
+      y="-50%"
+      width="200%"
+      height="200%"
+      color-interpolation-filters="sRGB"
+    >
       <feGaussianBlur
         v-for="index in blurSteps"
         :key="index"
         in="SourceGraphic"
         :stdDeviation="blur * index"
-        :result="index"
+        :result="`b${index}`"
       />
       <feMerge result="blurMerge">
-        <feMergeNode v-for="index in blurSteps" :key="index" :in="index" />
+        <feMergeNode v-for="index in blurSteps" :key="index" :in="`b${index}`" />
+        <feMergeNode in="SourceGraphic" />
       </feMerge>
     </filter>
     <circle
