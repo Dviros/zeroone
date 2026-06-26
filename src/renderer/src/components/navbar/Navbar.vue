@@ -106,20 +106,6 @@
               <p>{{ appStore.selectOnInput ? 'On' : 'Off' }}</p>
               <MenubarShortcut v-if="showShortcuts">⌘K</MenubarShortcut>
             </MenubarItem>
-            <MenubarSeparator v-if="false" />
-            <MenubarItem v-if="false"
-              >{{ $t('navbar.device.export') }}
-              <MenubarShortcut v-if="showShortcuts">⌘E</MenubarShortcut>
-            </MenubarItem>
-            <MenubarItem v-if="false"
-              >{{ $t('navbar.device.import') }}
-              <MenubarShortcut v-if="showShortcuts">⌘I</MenubarShortcut>
-            </MenubarItem>
-            <MenubarSeparator v-if="false" />
-            <MenubarItem v-if="false"
-              >{{ $t('navbar.device.quit') }}
-              <MenubarShortcut v-if="showShortcuts">⌘Q</MenubarShortcut>
-            </MenubarItem>
           </MenubarContent>
         </MenubarMenu>
         <MenubarButton
@@ -167,7 +153,6 @@
           <div v-if="deviceStore.dirtyState" class="text-sm">
             <PenLine class="inline-block h-4" />Unsaved Changes
           </div>
-          <MenubarButton v-if="false" class="app-titlebar-button border-2"> Revert </MenubarButton>
           <MenubarButton
             :class="
               deviceStore.dirtyState
@@ -181,13 +166,6 @@
           </MenubarButton>
         </div>
       </Transition>
-      <MenubarButton
-        v-if="showDisconnectButton"
-        class="app-titlebar-button border-2"
-        @click="deviceStore.setConnected(!deviceStore.connected)"
-      >
-        {{ deviceStore.connected ? 'Disconnect' : 'Connect' }}
-      </MenubarButton>
       <div v-if="!isMacOS" class="flex h-full">
         <button
           v-if="minimizable"
@@ -238,7 +216,6 @@ const deviceStore = useDeviceStore()
 
 const minimizable = ref(true)
 const maximizable = ref(true)
-const showDisconnectButton = ref(false)
 const showShortcuts = ref(false)
 const showNetConnect = ref(false)
 
@@ -249,10 +226,10 @@ const { appIpc } = window
 const isMacOS = appIpc.platform === 'darwin'
 const zoomFactor = ref(1)
 
-const previewDeviceNames = ref({
+const previewDeviceNames = {
   nanoOne: 'One',
   nanoZero: 'Zero'
-})
+}
 
 const zerooneTitle = ref(null)
 const zerooneSubtitle = ref(null)

@@ -79,9 +79,7 @@ class NanoIpcTauri implements INanoSerialApi {
   }
 
   /** save() is a no-op stub; the renderer calls nanoIpc.send with {save:true} directly. */
-  async save(_deviceid: string): Promise<void> {
-    // Intentionally empty — the protocol uses a send({save:true}) command.
-  }
+  async save(_deviceid: string): Promise<void> {}
 
   /**
    * Open a TCP connection to ip:3333, run the mutual HMAC handshake, and
@@ -117,11 +115,6 @@ class NanoIpcTauri implements INanoSerialApi {
     })
   }
 
-  /** Trigger a fresh mDNS browse cycle (the Rust backend already browses continuously). */
-  async mdnsRescan(): Promise<boolean> {
-    await invoke<void>('mdns_rescan')
-    return true
-  }
 }
 
 // Singleton — constructed once when the adapter module is first imported.

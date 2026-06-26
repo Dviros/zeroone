@@ -157,9 +157,7 @@ async function connectManual() {
 }
 
 function rescan() {
-  // Re-trigger mDNS discovery AND directly retry the remembered device — the
-  // latter is the reliable path on macOS where mDNS is flaky.
-  window.nanoIpc.mdnsRescan()
+  // Directly retry the remembered device — the reliable path on macOS where mDNS is flaky.
   deviceStore.autoConnectRemembered()
 }
 </script>

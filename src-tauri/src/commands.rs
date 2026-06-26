@@ -72,9 +72,3 @@ pub async fn disconnect_net(
 ) -> Result<(), String> {
     crate::net_transport::disconnect(device_id, state, app).await
 }
-
-/// Trigger a fresh mDNS browse cycle (no-op — browser runs continuously).
-#[tauri::command]
-pub fn mdns_rescan() -> Result<(), String> {
-    Ok(())
-}

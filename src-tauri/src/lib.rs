@@ -13,6 +13,7 @@ pub mod commands;
 use std::collections::HashMap;
 use parking_lot::Mutex;
 use tauri::Manager;
+use tauri::menu::Menu;
 
 // ── Shared state ──────────────────────────────────────────────────────────────
 
@@ -54,9 +55,13 @@ pub fn run() {
             commands::send,
             commands::connect_net,
             commands::disconnect_net,
-            commands::mdns_rescan,
         ])
         .setup(|app| {
+            // Set the native OS menu (App/Edit/View/Window/Help) so that standard
+            // shortcuts like Cmd+C/V/X/A, Cmd+Q, Cmd+W, and Cmd+M work in input fields.
+            let menu = Menu::default(app.handle())?;
+            app.set_menu(menu)?;
+
             // Start the mDNS browser in the background.
             let app_handle = app.handle().clone();
             std::thread::spawn(move || {

@@ -21,8 +21,6 @@ export interface INanoSerialApi {
   onNetDeviceDiscovered(callback: (device: NetDiscoveredDevice) => void): void
   /** Subscribe to mDNS-lost network devices. */
   onNetDeviceLost(callback: (device: { deviceId: string }) => void): void
-  /** Trigger a new mDNS browse cycle. */
-  mdnsRescan(): Promise<boolean>
 }
 
 export interface IAppIpc {
