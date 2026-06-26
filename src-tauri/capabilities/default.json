@@ -2,9 +2,12 @@
   "$schema": "../node_modules/@tauri-apps/cli/schema/capabilities/capability.json",
   "identifier": "default",
   "description": "Default capability for ZERO/ONE — grants access to all custom commands",
-  "windows": ["main"],
+  "windows": [
+    "main"
+  ],
   "permissions": [
     "core:default",
-    "shell:default"
+    "shell:default",
+    "core:window:allow-start-dragging"
   ]
 }

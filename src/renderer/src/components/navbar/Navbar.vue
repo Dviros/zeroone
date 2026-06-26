@@ -1,6 +1,7 @@
 <template>
   <div class="app-titlebar flex" data-tauri-drag-region>
     <Menubar
+      data-tauri-drag-region
       class="h-14 w-full justify-between rounded-none bg-zinc-900/70 px-3 font-mono text-muted-foreground"
     >
       <div v-if="isMacOS" class="w-[72px] shrink-0" style="pointer-events: none; -webkit-app-region: no-drag;" />
