@@ -10,6 +10,7 @@
     "beforeBuildCommand": "pnpm vite:build"
   },
   "app": {
+    "withGlobalTauri": true,
     "windows": [
       {
         "title": "ZeroOne",
@@ -21,7 +22,7 @@
       }
     ],
     "security": {
-      "csp": "default-src 'self'; script-src 'self' ipc: asset:; style-src 'self' 'unsafe-inline'; img-src 'self' data: asset: https:; font-src 'self' asset: data:; connect-src ipc: asset: http://localhost:5173 ws://localhost:5173"
+      "csp": "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' ipc: asset: http://localhost:5173; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: asset: https:; font-src 'self' asset: data:; connect-src ipc: asset: http://localhost:5173 ws://localhost:5173"
     }
   },
   "bundle": {
