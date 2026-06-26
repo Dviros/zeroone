@@ -1012,6 +1012,17 @@ export const initializeDevices = () => {
   // Register mDNS discovery handlers so network devices appear before connecting
   nanoIpc.onNetDeviceDiscovered((device) => {
     deviceStore.addDiscoveredNetDevice(device)
+    // Auto-connect if we already have a PSK cached for this device (mirrors the
+    // Electron one-click reconnect). First-time connect still needs a manual PSK
+    // entry via the Devices menu; after that it reconnects automatically.
+    if (!deviceStore.connected) {
+      const psk = deviceStore.getPersistedPsk(device.ip)
+      if (psk) {
+        deviceStore
+          .connectNetDevice(device.ip, psk)
+          .catch((e) => console.error('[net] auto-connect failed:', e))
+      }
+    }
   })
   nanoIpc.onNetDeviceLost((payload) => {
     deviceStore.removeDiscoveredNetDevice(payload.deviceId)
