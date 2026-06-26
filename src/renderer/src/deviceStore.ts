@@ -137,7 +137,18 @@ interface UpdateData {
   ok: boolean | undefined       // ACK result
 }
 
-const { nanoIpc } = window
+// window.nanoIpc is installed asynchronously by the Tauri bridge (main.ts) AFTER
+// this module is first imported. Destructuring here (`const { nanoIpc } = window`)
+// froze `undefined`, so initializeDevices() -> nanoIpc.on threw "undefined is not
+// an object" and the app rendered black. Resolve window.nanoIpc lazily on every
+// access so each call hits the live bridge regardless of import/init order.
+const nanoIpc = new Proxy({} as typeof window.nanoIpc, {
+  get(_t, prop: string | symbol) {
+    const real = window.nanoIpc as unknown as Record<string | symbol, unknown>
+    const v = real?.[prop]
+    return typeof v === 'function' ? (v as (...a: unknown[]) => unknown).bind(real) : v
+  }
+})
 
 const messageCallbacks: ((title: string, message: string) => void)[] = []
 
