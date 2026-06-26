@@ -55,10 +55,11 @@
             v-if="deviceStore.connected"
             class="absolute flex scale-[80%] flex-col items-center pb-2 text-center opacity-90 mix-blend-screen"
           >
-            <h2 class="font-pixellg relative mx-0 my-auto text-center text-[34pt] leading-none">
+            <h2 class="font-pixellg relative mx-0 my-auto text-center text-[34pt] leading-none" style="font-variant-numeric: tabular-nums;">
               {{ deviceStore.position }}
               <h2
                 class="font-pixellg-overlay absolute top-0 w-full text-[34pt] leading-none text-[#888888]"
+                style="font-variant-numeric: tabular-nums;"
               >
                 {{ deviceStore.position }}
               </h2>
@@ -87,7 +88,7 @@
       <Transition name="fade-delayed">
         <button
           v-if="deviceStore.connected"
-          class="absolute inset-x-0 top-[24.5%] mx-auto aspect-square h-[41.5%] rounded-full outline-2 transition-all"
+          class="absolute inset-x-0 top-[24.5%] mx-auto aspect-square h-[41.5%] rounded-full outline-2 transition-[outline-color,outline-width] duration-200"
           :class="{
             'outline outline-white': appStore.selectedFeature === 'knob',
             'outline-zinc-400 hover:outline': appStore.selectedFeature !== 'knob'

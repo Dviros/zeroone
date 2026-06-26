@@ -8,7 +8,7 @@
         'outline-zinc-400 hover:outline': key !== selected,
         'bg-black/20': keyObject.pressed
       }"
-      class="flex aspect-square flex-1 items-center justify-center rounded-[2px] outline-2 transition-all"
+      class="flex aspect-square flex-1 items-center justify-center rounded-[2px] outline-2 transition-[outline-color,outline-width,transform] duration-150 active:scale-95"
       :style="`box-shadow: 0 10px 40px -2px ${colorToLED(keyObject.color)?.hex()}`"
       @click="$emit('select', key)"
     >

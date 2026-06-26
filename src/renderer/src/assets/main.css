@@ -131,10 +131,14 @@
 
   h1, h2, h3, h4, h5, h6 {
       @apply font-heading;
+      text-wrap: balance;
   }
 
   body {
       @apply font-default bg-background text-foreground;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      text-wrap: pretty;
   }
 
   input[type="number"]::-webkit-inner-spin-button,

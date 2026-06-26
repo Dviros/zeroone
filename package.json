@@ -1,6 +1,6 @@
 {
   "name": "zeroone",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Configuration Suite for Binaris Devices",
   "author": "katbinaris",
   "packageManager": "pnpm@9.3.0",

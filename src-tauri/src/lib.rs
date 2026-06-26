@@ -12,6 +12,7 @@ pub mod commands;
 
 use std::collections::HashMap;
 use parking_lot::Mutex;
+use tauri::Manager;
 
 // ── Shared state ──────────────────────────────────────────────────────────────
 
@@ -61,6 +62,19 @@ pub fn run() {
             std::thread::spawn(move || {
                 mdns_browser::run_browser(app_handle);
             });
+
+            // Apply macOS vibrancy (frosted-glass NSVisualEffectView behind the window).
+            // This is a no-op on non-macOS targets because the cfg guard excludes it.
+            #[cfg(target_os = "macos")]
+            {
+                use window_vibrancy::{apply_vibrancy, NSVisualEffectMaterial};
+                if let Some(win) = app.get_webview_window("main") {
+                    // HudWindow gives a dark frosted-glass look that matches the app palette.
+                    // The None, None args use the OS-default corner radius and state.
+                    let _ = apply_vibrancy(&win, NSVisualEffectMaterial::HudWindow, None, None);
+                }
+            }
+
             Ok(())
         })
         .run(tauri::generate_context!())

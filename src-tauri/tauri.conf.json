@@ -1,7 +1,7 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "ZERO_ONE",
-  "version": "1.0.0",
+  "productName": "ZeroOne",
+  "version": "1.1.0",
   "identifier": "com.katbinaris.zeroone",
   "build": {
     "frontendDist": "../dist",
@@ -18,7 +18,8 @@
         "height": 740,
         "resizable": true,
         "fullscreen": false,
-        "titleBarStyle": "Overlay"
+        "titleBarStyle": "Overlay",
+        "transparent": true
       }
     ],
     "security": {

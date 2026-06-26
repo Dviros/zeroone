@@ -31,8 +31,19 @@ async function installTauriBridge(): Promise<void> {
       if (maximized) maximizedListeners.forEach((cb) => cb(true))
       else unmaximizedListeners.forEach((cb) => cb())
     })
+    // Detect OS: navigator.userAgentData is preferred (Chromium 90+, available in WKWebView),
+    // fall back to navigator.platform for broader compatibility.
+    const detectedPlatform: string = (() => {
+      if (typeof navigator !== 'undefined') {
+        const ua = navigator.userAgent || ''
+        if (ua.includes('Macintosh') || ua.includes('Mac OS')) return 'darwin'
+        if (ua.includes('Win')) return 'win32'
+        if (ua.includes('Linux')) return 'linux'
+      }
+      return 'unknown'
+    })()
     window.appIpc = {
-      platform: 'darwin', // macOS is the primary target; adjust if cross-platform
+      platform: detectedPlatform,
       isDevelopment: import.meta.env.DEV,
       minimizeWindow: () => win.minimize(),
       toggleMaximizeWindow: () => win.toggleMaximize(),

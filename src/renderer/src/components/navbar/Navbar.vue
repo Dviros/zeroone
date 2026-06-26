@@ -1,9 +1,9 @@
 <template>
-  <div class="app-titlebar flex">
+  <div class="app-titlebar flex" data-tauri-drag-region>
     <Menubar
-      class="h-14 w-full justify-between rounded-none bg-zinc-900 px-3 font-mono text-muted-foreground"
+      class="h-14 w-full justify-between rounded-none bg-zinc-900/70 px-3 font-mono text-muted-foreground"
     >
-      <div v-if="isMacOS" :style="{ width: 80 / zoomFactor + 'px' }" />
+      <div v-if="isMacOS" class="w-[72px] shrink-0" style="pointer-events: none; -webkit-app-region: no-drag;" />
       <div class="flex items-center">
         <h1
           class="app-titlebar-button min-w-32 text-nowrap text-2xl text-zinc-100"
