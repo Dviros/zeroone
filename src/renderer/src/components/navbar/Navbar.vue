@@ -264,12 +264,22 @@ const scrambleTitle = () => {
 
 /** One-click connect for a discovered device — uses cached PSK if available. */
 async function connectNetDiscovered(dev) {
-  // Already on this device — nothing to do.
-  if (deviceStore.currentDeviceId === dev.deviceId) return
-  // Switching from another device — drop the current connection first.
+  // If already connected to this exact device and the socket is live, skip.
+  // We do NOT early-return on matching IDs alone: the socket may be stale while
+  // currentDeviceId still holds the old value (e.g. after a firmware reboot).
+  if (deviceStore.connected && deviceStore.currentDeviceId === dev.deviceId) return
+
+  // Drop the current connection first and await it so the Rust side finishes
+  // tearing down the old socket before we try to open a new one.
   if (deviceStore.connected) {
-    deviceStore.disconnectDevice(deviceStore.currentDeviceId)
+    try {
+      await deviceStore.disconnectDeviceAsync(deviceStore.currentDeviceId)
+    } catch (e) {
+      // Disconnect errors are non-fatal (socket may already be gone).
+      console.warn('[connectNetDiscovered] disconnect error:', e)
+    }
   }
+
   const cachedPsk = deviceStore.getPersistedPsk(dev.ip)
   if (cachedPsk) {
     try {

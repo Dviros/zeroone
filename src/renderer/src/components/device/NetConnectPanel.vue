@@ -115,11 +115,18 @@ onMounted(() => {
 
 async function connectDiscovered(dev: NetDiscoveredDevice) {
   errorMsg.value = ''
+  // If already connected to this exact live device, nothing to do.
+  if (deviceStore.connected && deviceStore.currentDeviceId === dev.deviceId) return
+
   // Check if we have a cached PSK for this IP
   const cachedPsk = deviceStore.getPersistedPsk(dev.ip)
   if (cachedPsk) {
     connectingId.value = dev.deviceId
     try {
+      // Disconnect current device first so the Rust side is clean before connecting.
+      if (deviceStore.connected) {
+        await deviceStore.disconnectDeviceAsync(deviceStore.currentDeviceId!)
+      }
       await deviceStore.connectNetDevice(dev.ip, cachedPsk)
     } catch (err: unknown) {
       // Cached PSK failed — fall back to manual form pre-filled with IP

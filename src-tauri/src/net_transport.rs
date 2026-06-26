@@ -172,8 +172,12 @@ pub async fn connect(
 ) -> Result<String, String> {
     let device_id = format!("net:{ip}");
 
-    if state.net_conns.lock().contains_key(&device_id) {
-        return Ok(device_id);
+    // If a stale entry exists (e.g. after a firmware reboot without a clean
+    // disconnect), evict it so we can re-open a fresh connection.  We set the
+    // stop_flag so the old reader task exits at its next timeout; we do NOT
+    // wait for it — the new connection will simply supersede it.
+    if let Some(old_conn) = state.net_conns.lock().remove(&device_id) {
+        old_conn.stop_flag.store(true, std::sync::atomic::Ordering::Relaxed);
     }
 
     let stream = TcpStream::connect(format!("{ip}:{DEVICE_PORT}"))

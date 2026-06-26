@@ -443,6 +443,21 @@ export const useDeviceStore = defineStore('device', {
         else nanoIpc.disconnect(deviceId)
       }
     },
+    /**
+     * Awaitable disconnect — same state teardown as disconnectDevice but
+     * returns a Promise so callers can sequence connect-after-disconnect safely.
+     */
+    async disconnectDeviceAsync(deviceId: string): Promise<void> {
+      if (this.currentDeviceId === deviceId) this.currentDeviceId = null
+      this.setDirtyState(false)
+      if (deviceId.startsWith('net:')) {
+        const i = this.attachedDeviceIds.indexOf(deviceId)
+        if (i !== -1) this.attachedDeviceIds.splice(i, 1)
+        await nanoIpc.disconnectNet(deviceId)
+      } else {
+        await nanoIpc.disconnect(deviceId)
+      }
+    },
     setDirtyState(dirty: boolean) {
       this.dirtyState = dirty
     },
@@ -946,6 +961,11 @@ export const initializeDevices = () => {
       console.log('Detached device', deviceid)
     }
     if (eventid === 'connected') {
+      // Net devices never emit 'device-attached', so we must add them to
+      // attachedDeviceIds here so the navbar count reflects reality.
+      if (deviceid.startsWith('net:')) {
+        deviceStore.attachDevice(deviceid)
+      }
       deviceStore.connectDevice(deviceid, false)
       console.log('Connected device', deviceid)
       nanoIpc.send(deviceid, JSON.stringify({ profiles: '#all', settings: '?' }))
