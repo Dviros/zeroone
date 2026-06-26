@@ -41,29 +41,17 @@
               <X class="h-5" />
             </button>
           </Transition>
-          <Transition name="fade">
-            <button
-              v-if="!appStore.showProfileConfig"
-              class="flex aspect-square h-8 items-center justify-center rounded-lg border border-zinc-100 bg-zinc-300 text-black hover:bg-zinc-200"
-              @click="deviceStore.createProfile"
-            >
-              <Plus class="h-4" />
-            </button>
-          </Transition>
-          <DropdownMenu v-if="false">
-            <DropdownMenuTrigger>
-              <Transition name="fade">
-                <button
-                  v-if="!appStore.showProfileConfig"
-                  class="flex aspect-square h-8 items-center justify-center rounded-lg border border-zinc-100 bg-zinc-300 text-black hover:bg-zinc-200"
-                >
-                  <Plus class="h-4" />
-                </button>
-              </Transition>
+          <DropdownMenu v-if="!appStore.showProfileConfig">
+            <DropdownMenuTrigger as-child>
+              <button
+                class="flex aspect-square h-8 items-center justify-center rounded-lg border border-zinc-100 bg-zinc-300 text-black hover:bg-zinc-200"
+              >
+                <Plus class="h-4" />
+              </button>
             </DropdownMenuTrigger>
             <DropdownMenuContent>
-              <DropdownMenuItem @click="deviceStore.createProfile"> Profile </DropdownMenuItem>
-              <DropdownMenuItem v-if="false"> Category </DropdownMenuItem>
+              <DropdownMenuItem @click="deviceStore.createProfile">Blank Profile</DropdownMenuItem>
+              <DropdownMenuItem @click="deviceStore.createMusicProfile">Music (macOS Media)</DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         </div>

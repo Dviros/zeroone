@@ -52,6 +52,7 @@ export interface Action {
   val?: number
   buttons?: number
   name?: string
+  usage?: number
 }
 
 export interface Value {
@@ -347,6 +348,37 @@ export const useDeviceStore = defineStore('device', {
       }
       nanoIpc.send(this.currentDeviceId!, JSON.stringify({ profile: name }))
       this.selectProfile(name)
+      this.setDirtyState(true)
+    },
+    createMusicProfile() {
+      const name = 'MUSIC'
+      const base = JSON.parse(JSON.stringify(this.defaultKnobValue)) as Value
+      const musicProfile: Partial<Profile> & { name: string; knob: Value[]; keys: Key[] } = {
+        name,
+        knob: [
+          {
+            ...base,
+            type: 'volume',
+            haptic: { ...base.haptic, detentCount: 24, endPos: 24 }
+          }
+        ],
+        keys: [
+          { pressed: [{ type: 'consumer', usage: 0xcd }], released: [{ type: 'consumer', usage: 0 }], held: [] },
+          { pressed: [{ type: 'consumer', usage: 0xb5 }], released: [{ type: 'consumer', usage: 0 }], held: [] },
+          { pressed: [{ type: 'consumer', usage: 0xb6 }], released: [{ type: 'consumer', usage: 0 }], held: [] },
+          { pressed: [{ type: 'consumer', usage: 0xe2 }], released: [{ type: 'consumer', usage: 0 }], held: [] }
+        ]
+      }
+      nanoIpc.send(this.currentDeviceId!, JSON.stringify({ profile: name }))
+      this.selectProfile(name)
+      // Give firmware a tick to create the profile slot before sending updates
+      setTimeout(() => {
+        const updates = { knob: musicProfile.knob, keys: musicProfile.keys }
+        nanoIpc.send(
+          this.currentDeviceId!,
+          JSON.stringify({ profile: name, updates })
+        )
+      }, 50)
       this.setDirtyState(true)
     },
     addProfile(profile: Profile, updateDevice: boolean = true) {

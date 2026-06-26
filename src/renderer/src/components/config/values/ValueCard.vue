@@ -138,6 +138,7 @@ import { useElementSize } from '@vueuse/core'
 import TriggerActionsValue from '@renderer/components/config/values/TriggerActionsValue.vue'
 import ControlMidiValue from './ControlMidiValue.vue'
 import SwitchProfilesValue from './SwitchProfilesValue.vue'
+import VolumeValue from './VolumeValue.vue'
 import { useDeviceStore } from '@renderer/deviceStore'
 
 const deviceStore = useDeviceStore()
@@ -159,6 +160,7 @@ const valueTypeOptions = ref({
   // mouse: { label: 'Move or Scroll the Mouse', component: 'ControlMouseValue' },
   // gamepad: { label: 'Control a Gamepad Axis', component: 'ControlGamepadValue' },
   midi: { label: 'Control a MIDI CC Value', component: ControlMidiValue },
+  volume: { label: 'macOS Volume', component: VolumeValue },
   // action: { label: 'Trigger Actions on Rotation', component: TriggerActionsValue },
   // Fixed: was a string component name which rendered nothing; now uses imported component
   profiles: { label: 'Switch Profiles', component: SwitchProfilesValue }
