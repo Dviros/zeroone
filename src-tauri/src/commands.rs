@@ -5,6 +5,35 @@
 use tauri::{AppHandle, State};
 use crate::AppState;
 
+// ── Bridge config (~/.config/nanod/bridge.json) ───────────────────────────────
+
+fn bridge_config_path() -> Result<std::path::PathBuf, String> {
+    let home = std::env::var("HOME").map_err(|_| "HOME env not set".to_string())?;
+    Ok(std::path::PathBuf::from(home).join(".config").join("nanod").join("bridge.json"))
+}
+
+/// Write the bridge config JSON string to ~/.config/nanod/bridge.json.
+/// Creates the directory if it does not exist.
+#[tauri::command]
+pub fn write_bridge_config(json: String) -> Result<(), String> {
+    let path = bridge_config_path()?;
+    if let Some(dir) = path.parent() {
+        std::fs::create_dir_all(dir).map_err(|e| e.to_string())?;
+    }
+    std::fs::write(&path, json.as_bytes()).map_err(|e| e.to_string())
+}
+
+/// Read the bridge config JSON string from ~/.config/nanod/bridge.json.
+/// Returns an empty string if the file does not exist yet.
+#[tauri::command]
+pub fn read_bridge_config() -> Result<String, String> {
+    let path = bridge_config_path()?;
+    if !path.exists() {
+        return Ok(String::new());
+    }
+    std::fs::read_to_string(&path).map_err(|e| e.to_string())
+}
+
 /// List serial devices that match the Nano VID/PID heuristics.
 #[tauri::command]
 pub fn list_serial_devices() -> Vec<String> {

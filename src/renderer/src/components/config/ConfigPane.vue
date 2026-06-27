@@ -63,12 +63,13 @@ const appStore = useAppStore()
 const deviceStore = useDeviceStore()
 
 // Features that are device-global (not profile-bound) — registered by APP3 via appStore
-const GLOBAL_FEATURES = ['wifi', 'sprites', 'integrations']
+const GLOBAL_FEATURES = ['wifi', 'sprites', 'integrations', 'macos']
 
 const globalPanels = [
   { key: 'wifi', label: 'WiFi' },
   { key: 'sprites', label: 'Sprites' },
-  { key: 'integrations', label: 'Integrations' }
+  { key: 'integrations', label: 'Integrations' },
+  { key: 'macos', label: 'macOS' }
 ]
 
 const isGlobalPanel = computed(() => GLOBAL_FEATURES.includes(appStore.selectedFeature))

@@ -55,6 +55,8 @@ pub fn run() {
             commands::send,
             commands::connect_net,
             commands::disconnect_net,
+            commands::write_bridge_config,
+            commands::read_bridge_config,
         ])
         .setup(|app| {
             // Set the native OS menu (App/Edit/View/Window/Help) so that standard

@@ -11,6 +11,7 @@ import KeyFeedbackConfig from './components/config/keys/KeyFeedbackConfig.vue'
 import WiFiConfig from '@renderer/components/config/wifi/WiFiConfig.vue'
 import SpriteConfig from '@renderer/components/config/sprites/SpriteConfig.vue'
 import IntegrationsConfig from '@renderer/components/config/integrations/IntegrationsConfig.vue'
+import MacosActionsConfig from '@renderer/components/config/macos/MacosActionsConfig.vue'
 
 export const useAppStore = defineStore('app', {
   state: () => {
@@ -65,6 +66,12 @@ export const useAppStore = defineStore('app', {
             titleKey: 'config_options.integrations.title',
             component: shallowRef(IntegrationsConfig)
           }
+        },
+        macos: {
+          main: {
+            titleKey: 'config_options.macos.title',
+            component: shallowRef(MacosActionsConfig)
+          }
         }
       },
       previewDeviceModel: localStorage.getItem('previewDeviceModel') || 'nanoOne',
@@ -81,7 +88,7 @@ export const useAppStore = defineStore('app', {
   actions: {
     selectConfigFeature(feature) {
       this.selectedFeature = feature
-      // Global panels ('wifi','sprites','integrations') have only a 'main' sub-page
+      // Global panels ('wifi','sprites','integrations','macos') have only a 'main' sub-page
       if (!this.currentConfigPages[this.currentConfigPage]) {
         const firstPage = Object.keys(this.currentConfigPages)[0] || 'mapping'
         this.setCurrentConfigPage(firstPage)
